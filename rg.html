@@ -1,0 +1,42 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.1/lodash.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    var socket = io();
+    var timz = [];
+    var offset;
+    socket.on('sync', function(msg) {
+        timz.push(msg.time); 
+        socket.emit('syncback', msg);
+    });
+    socket.on('calcOffset', function(msg) {
+        var lastTime = timz[0];
+        var latencies = [];
+        _.each(timz.slice(1), function(time) {
+            latencies.push(time - lastTime);
+            lastTime = time;
+        });
+        var totalLat = _.reduce(latencies, function(total, lat) {
+            return total + lat
+        }, 0);
+        var avgLatency = totalLat / latencies.length;
+
+        offset = avgLatency / 2;
+    });
+    socket.on('setClock', function(msg) {
+        var clockSkew = msg.time - Date.now() 
+        setInterval(function() {
+            var time = parseInt((Date.now() + clockSkew) / 1000) - 1444160000;
+            if (time % 2) {
+                document.bgColor = "darkGreen";
+                document.getElementById('FOO').innerHTML = time + ' ' + clockSkew;
+            } else {
+                document.bgColor = "darkRed";
+                document.getElementById('FOO').innerHTML = time + ' ' + clockSkew;
+            }
+
+        }, 50);
+    });
+</script>
+<body>
+    <span style="font-size:100px" id="FOO"></SPAN>
+</body>
